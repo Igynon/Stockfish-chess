@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Play vs Stockfish</title>
+
+  <!-- Chessboard.js CSS -->
+  <script src="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>♟️ Play vs Stockfish ♟️</h1>
+  <div id="board" style="width: 400px"></div>
+  <p id="status">Your move</p>
+
+  <!-- Chessboard.js & Chess.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.0.0/chess.min.js"></script>
+
+  <!-- Stockfish from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.wasm.js"></script>
+
+  <!-- Your game logic -->
+  <script src="script.js"></script>
+</body>
+</html>
