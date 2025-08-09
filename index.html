@@ -2,40 +2,42 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Play vs Stockfish</title>
-  <link rel="stylesheet" href="https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+  <title>Stockfish Chess</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/css/chessboard-1.0.0.min.css">
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; background: #f0f0f0; }
+    body { text-align: center; background: #f0f0f0; font-family: sans-serif; }
     #board { width: 400px; margin: 20px auto; }
-    button { margin-top: 10px; padding: 5px 10px; }
   </style>
 </head>
 <body>
-  <h1>Play Against Stockfish</h1>
+
+  <h1>Play Chess vs Stockfish</h1>
   <div id="board"></div>
-  <button onclick="resetGame()">Reset Game</button>
 
-  <!-- Chess.js (game rules) -->
+  <!-- chessboard.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/js/chessboard-1.0.0.min.js"></script>
+
+  <!-- chess.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
-  <!-- Chessboard.js (board UI) -->
-  <script src="https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-  <!-- Stockfish WASM from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish.js"></script>
 
+  <!-- stockfish -->
+  <script src="https://niklasf.github.io/stockfish.wasm/stockfish.js"></script>
+
+  <!-- game logic -->
   <script>
+    const game = new Chess();
+    const playerColor = Math.random() < 0.5 ? 'white' : 'black';
     const board = Chessboard('board', {
       draggable: true,
       position: 'start',
+      orientation: playerColor,
       onDrop: onDrop
     });
 
-    const game = new Chess();
-    const engine = STOCKFISH();
-
-    engine.onmessage = function(event) {
-      const line = event.data ? event.data.toString() : '';
-      if (line.startsWith('bestmove')) {
-        const move = line.split(' ')[1];
+    const stockfish = Stockfish();
+    stockfish.onmessage = function (event) {
+      if (typeof event === 'string' && event.includes('bestmove')) {
+        const move = event.split(' ')[1];
         game.move({ from: move.substring(0, 2), to: move.substring(2, 4), promotion: 'q' });
         board.position(game.fen());
       }
@@ -44,14 +46,16 @@
     function onDrop(source, target) {
       const move = game.move({ from: source, to: target, promotion: 'q' });
       if (move === null) return 'snapback';
-      engine.postMessage('position fen ' + game.fen());
-      engine.postMessage('go depth 15');
+      board.position(game.fen());
+      stockfish.postMessage('position fen ' + game.fen());
+      stockfish.postMessage('go depth 15');
     }
 
-    function resetGame() {
-      game.reset();
-      board.start();
+    if (playerColor === 'black') {
+      stockfish.postMessage('position startpos');
+      stockfish.postMessage('go depth 15');
     }
   </script>
+
 </body>
 </html>
