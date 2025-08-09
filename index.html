@@ -1,87 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Stockfish Chess</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- Chessboard.js CSS -->
-<link rel="stylesheet" href="https://unpkg.com/chessboardjs@1.0.0/www/css/chessboard-1.0.0.min.css">
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #202020;
-    color: white;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-  }
-  #board {
-    width: 400px;
-    margin: 20px auto;
-  }
-</style>
+  <meta charset="utf-8">
+  <title>Stockfish Chess</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/css/chessboard-1.0.0.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    #board {
+      width: 400px;
+      margin: 20px auto;
+    }
+  </style>
 </head>
 <body>
+  <h1>Stockfish Chess</h1>
+  <div id="board"></div>
+  <p id="status"></p>
 
-<h1>Play Stockfish in Your Browser</h1>
-<div id="board"></div>
-<p id="status"></p>
+  <!-- Chessboard.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/js/chessboard-1.0.0.min.js"></script>
+  <!-- Chess.js (game logic) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <!-- Stockfish WASM (non-module) -->
+  <script src="https://niklasf.github.io/stockfish.wasm/stockfish.js"></script>
 
-<!-- Chess.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
-<!-- Chessboard.js -->
-<script src="https://unpkg.com/chessboardjs@1.0.0/www/js/chessboard-1.0.0.min.js"></script>
-<!-- Stockfish -->
-<script src="https://cdn.jsdelivr.net/gh/niklasf/stockfish.js/stockfish.js"></script>
+  <script>
+    const board = Chessboard('board', {
+      draggable: true,
+      position: 'start',
+      onDrop: handleMove
+    });
+    const game = new Chess();
+    const statusEl = document.getElementById('status');
 
-<script>
-  const boardElement = document.getElementById("board");
-  const statusElement = document.getElementById("status");
+    const stockfish = new Worker("https://niklasf.github.io/stockfish.wasm/stockfish.js");
 
-  let game = new Chess();
-  let playerIsWhite = Math.random() < 0.5; // Randomly choose side
-  let board = Chessboard('board', {
-    draggable: true,
-    position: 'start',
-    orientation: playerIsWhite ? 'white' : 'black',
-    onDrop: onDrop
-  });
+    stockfish.onmessage = e => {
+      const line = e.data;
+      if (typeof line === 'string' && line.startsWith('bestmove')) {
+        const move = line.split(' ')[1];
+        game.move({ from: move.substring(0, 2), to: move.substring(2, 4), promotion: 'q' });
+        board.position(game.fen());
+        updateStatus();
+      }
+    };
 
-  let stockfish = STOCKFISH();
-  stockfish.onmessage = function(event) {
-    let line = event.data || event;
-    if (line.startsWith("bestmove")) {
-      let move = line.split(" ")[1];
-      game.move({ from: move.substring(0, 2), to: move.substring(2, 4), promotion: 'q' });
-      board.position(game.fen());
+    function handleMove(source, target) {
+      const move = game.move({ from: source, to: target, promotion: 'q' });
+      if (move === null) return 'snapback';
       updateStatus();
+      window.setTimeout(makeAIMove, 250);
     }
-  };
 
-  function onDrop(source, target) {
-    let move = game.move({ from: source, to: target, promotion: 'q' });
-    if (move === null) return 'snapback';
-    updateStatus();
-    stockfish.postMessage("position fen " + game.fen());
-    stockfish.postMessage("go depth 15");
-  }
-
-  function updateStatus() {
-    if (game.isCheckmate()) {
-      statusElement.textContent = "Checkmate!";
-    } else if (game.isDraw()) {
-      statusElement.textContent = "Draw!";
-    } else {
-      statusElement.textContent = (game.turn() === 'w' ? "White" : "Black") + " to move.";
+    function makeAIMove() {
+      stockfish.postMessage('position fen ' + game.fen());
+      stockfish.postMessage('go depth 15');
     }
-  }
 
-  // If Stockfish starts (you are Black)
-  if (!playerIsWhite) {
-    stockfish.postMessage("position fen " + game.fen());
-    stockfish.postMessage("go depth 15");
-  }
-</script>
-
+    function updateStatus() {
+      let status = '';
+      if (game.in_checkmate()) {
+        status = 'Game over, ' + (game.turn() === 'w' ? 'Black' : 'White') + ' wins by checkmate.';
+      } else if (game.in_draw()) {
+        status = 'Game over, drawn position.';
+      } else {
+        status = (game.turn() === 'w' ? 'White' : 'Black') + ' to move';
+        if (game.in_check()) {
+          status += ', in check';
+        }
+      }
+      statusEl.textContent = status;
+    }
+  </script>
 </body>
 </html>
+
