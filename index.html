@@ -1,27 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Play vs Stockfish</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play Stockfish</title>
 
-  <!-- Chessboard.js CSS -->
-  <script src="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-  <link rel="stylesheet" href="style.css" />
+    <!-- Chessboard.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 </head>
 <body>
-  <h1>♟️ Play vs Stockfish ♟️</h1>
-  <div id="board" style="width: 400px"></div>
-  <p id="status">Your move</p>
+    <h1>Play vs Stockfish</h1>
 
-  <!-- Chessboard.js & Chess.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/1.0.0/chess.min.js"></script>
+    <!-- Chessboard -->
+    <div id="board" style="width: 400px"></div>
 
-  <!-- Stockfish from CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.wasm.js"></script>
+    <!-- Chessboard.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <!-- Chess.js for game rules -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+    <!-- Stockfish from Lichess -->
+    <script src="https://lichess1.org/stockfish/stockfish.wasm.js"></script>
 
-  <!-- Your game logic -->
-  <script src="script.js"></script>
+    <script>
+        const game = new Chess();
+        let board = null;
+
+        // Stockfish engine
+        const stockfish = new Worker("https://lichess1.org/stockfish/stockfish.wasm.js");
+
+        stockfish.onmessage = function (e) {
+            const line = e.data;
+            console.log("SF:", line);
+            if (line.startsWith("bestmove")) {
+                const move = line.split(" ")[1];
+                game.move({ from: move.substring(0, 2), to: move.substring(2, 4), promotion: 'q' });
+                board.position(game.fen());
+            }
+        };
+
+        function onDragStart(source, piece) {
+            if (game.game_over() || piece.startsWith('b')) return false;
+        }
+
+        function onDrop(source, target) {
+            const move = game.move({ from: source, to: target, promotion: 'q' });
+            if (move === null) return 'snapback';
+
+            // Tell Stockfish the position
+            stockfish.postMessage("position fen " + game.fen());
+            stockfish.postMessage("go depth 15");
+        }
+
+        function onSnapEnd() {
+            board.position(game.fen());
+        }
+
+        board = Chessboard('board', {
+            draggable: true,
+            position: 'start',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd
+        });
+    </script>
 </body>
 </html>
