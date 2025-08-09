@@ -20,8 +20,8 @@
   <!-- chess.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 
-  <!-- stockfish -->
-  <script src="https://niklasf.github.io/stockfish.wasm/stockfish.js"></script>
+  <!-- stockfish (browser build) -->
+  <script src="https://cdn.jsdelivr.net/gh/niklasf/stockfish.js/stockfish.js"></script>
 
   <!-- game logic -->
   <script>
@@ -34,7 +34,7 @@
       onDrop: onDrop
     });
 
-    const stockfish = Stockfish();
+    const stockfish = STOCKFISH();
     stockfish.onmessage = function (event) {
       if (typeof event === 'string' && event.includes('bestmove')) {
         const move = event.split(' ')[1];
